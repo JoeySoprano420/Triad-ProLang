@@ -168,10 +168,6 @@ Licensed under the **Sovereign Universal Entity Technical License (S.U.E.T.) v1.
 
 ---
 
-If you want, I can now **bundle this README + all current Triad source + grammar + VS Code extension** into a **final `triad-full-ecosystem-ultra.zip`** so it’s all packaged in one download.
-Do you want me to prepare that?
-
-
 Here’s the current scope and capabilities of the **Triad compiler toolchain**, now further expanded to wire the bytecode compiler for structured exception handling and add VM-side object construction and method dispatch.
 
 ### Features Implemented
