@@ -1,0 +1,34 @@
+{
+  "name": "triad-super-autocomplete",
+  "displayName": "Triad Super Autocomplete",
+  "publisher": "you",
+  "version": "0.0.3",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "activationEvents": [
+    "onLanguage:triad",
+    "workspaceContains:**/*.triad"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "triad",
+        "aliases": [
+          "Triad",
+          "triad"
+        ],
+        "extensions": [
+          ".triad"
+        ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "triad",
+        "path": "./snippets/triad.json"
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "Try/Catch/Finally": {
+    "prefix": ["trycatch"],
+    "body": [
+      "try {",
+      "  ${1:// body}",
+      "} catch e as ${2:Error} {",
+      "  ${3:// handler}",
+      "} finally {",
+      "  ${4:// cleanup}",
+      "}"
+    ],
+    "description": "Try / catch / finally scaffold"
+  },
+  "Pure Def": {
+    "prefix": ["puredef"],
+    "body": [
+      "/** ${3:docs} */",
+      "pure def ${1:Class}.${2:method}(${4:args})"
+    ],
+    "description": "Declare a pure method"
+  }
+}
