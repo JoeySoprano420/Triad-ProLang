@@ -1,0 +1,28 @@
+# === Macro definition ===
+macro sparkle(level):
+    # Double the input to amplify the "shine" factor
+    let shine = level * 2
+    echo "Shine level: " + shine
+    return shine
+end
+
+# === Main executable capsule ===
+capsule AgentMain [introspective, mutable]:
+    Load   R1 Fastest #3        # Set register R1 to 3 (Fastest literal load)
+    
+    loop Deepest Repeat:        # Label 'Repeat' for loop start
+        say  "✨"                # Output sparkle symbol
+        mutate R1 Softest -1    # Decrement R1 softly (soft mutation = minimal energy change)
+        jump Repeat Hardest if R1 > 0
+    end
+
+    let glow = sparkle(R1)      # Call macro 'sparkle' with current R1 value
+    
+    if glow > 4:
+        tone Brightest "C#5"    # Play bright tone
+    else:
+        tone Softest "A3"       # Play soft tone
+    end
+
+    trace capsule               # Output runtime state, registers, and history
+end
