@@ -26,3 +26,19 @@ capsule AgentMain [introspective, mutable]:
 
     trace capsule               # Output runtime state, registers, and history
 end
+
+
+## How Triad interprets this syntax:
+
+| Keyword / Symbol     | Purpose                                                          | Notes                                                       |
+| -------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| `macro`              | Defines a reusable code block with parameters                    | Compile-time, expands inline                                |
+| `capsule`            | Self-contained execution unit                                    | Can be tagged (`[introspective, mutable]`)                  |
+| `Load R1 Fastest #3` | Assign register `R1` value `3` using a load mode (`Fastest`)     | Load modes may affect instruction cost                      |
+| `loop ... Repeat:`   | Defines a loop starting point with label                         | Used with `jump`                                            |
+| `say`                | Outputs text or symbols to active output device                  | Unicode allowed                                             |
+| `mutate`             | Alters register value                                            | Energy-weighted mutation (`Softest`, `Hardest`, etc.)       |
+| `jump Repeat ... if` | Conditional branch to label                                      | Branch modes (`Hardest`, etc.) influence execution priority |
+| `tone`               | Emits audio tone with a symbolic intensity                       | Format `"NoteOctave"`                                       |
+| `trace capsule`      | Dumps execution trace, register values, and macro expansion data | Often used in introspective debugging                       |
+
