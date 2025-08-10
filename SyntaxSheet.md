@@ -531,6 +531,550 @@ end
   ```
   macro m(a): let b=a+1; return b; end
   ```
+# Triad Language — Complete Syntax Sheet (v1.0, expanded)
+
+Triad is an execution-oriented language built around **capsules** (runnable units), **macros** (compile-time expansion), symbolic **registers**, and **introspective tracing**. This edition fully specifies **struct/class/enum** user types and **exceptions** via **try/catch/finally/throw**.
+
+---
+
+## 0) Quick legend
+
+* **Modes (adverbs):** optional intent hints like `Fastest`, `Softest`, `Hardest`, `Brightest`, `Deepest`. They never change correctness; engines may use them for scheduling/quality.
+* **Capsule:** the unit you actually run.
+* **Registers:** `R0..R15` numeric cells; strings/objects live in variables.
+
+---
+
+## 1) Lexical & Basics (unchanged highlights)
+
+* **Comments:** `# …`, `// …`, or `/* … */` (nestable).
+* **Identifiers:** `[A-Za-z_][A-Za-z0-9_]*` (case-sensitive).
+* **Literals:** ints (`42`, `0xFF`), floats, strings (`"..."`), `true/false`, `null`.
+* **Reserved words (now active):**
+
+  ```
+  macro end capsule let return if else loop jump from to say echo tone trace mutate load Load
+  struct class enum new init this try catch finally throw
+  true false null import as using with not and or
+  ```
+
+---
+
+## 2) Types
+
+### 2.1 Built-ins
+
+`Int`, `Float`, `Bool`, `String`, `Null`.
+
+### 2.2 Structs (value types)
+
+* Immutable by default (fields set at construction).
+* Copy by value; equality is **structural**.
+* May include **methods** (which receive an implicit `this`).
+* No inheritance; can implement behavior via methods and macros.
+
+```triad
+struct Point:
+  let x: Int
+  let y: Int
+
+  # Method (value semantics; returns a new Point)
+  func offset(dx: Int, dy: Int) -> Point:
+    return Point { x: this.x + dx, y: this.y + dy }
+  end
+end
+
+let p = Point { x: 3, y: 5 }
+let q = p.offset(1, -2)  # => Point {4,3}
+```
+
+**Construction forms**
+
+* **Literal/init-list:** `Point { x: 1, y: 2 }`
+* **With `new`:** `new Point { x: 1, y: 2 }` (identical; `new` is stylistic)
+
+### 2.3 Classes (reference types)
+
+* Reference semantics; equality is **by identity** unless a `equals()` method is defined.
+* Optional **constructor** named `init`.
+* Methods receive `this`.
+* No inheritance in v1.0 (simple, composable design); composition preferred.
+
+```triad
+class Counter:
+  let value: Int  # internally mutable via methods (class allows interior mutation)
+
+  func init(start: Int):
+    this.value = start
+  end
+
+  func inc() -> Int:
+    this.value = this.value + 1
+    return this.value
+  end
+
+  func reset():
+    this.value = 0
+  end
+end
+
+let c = new Counter( start: 10 )  # constructor call using named args
+echo "v=" + c.inc()               # 11
+```
+
+**Construction forms**
+
+* **Constructor:** `new ClassName(arg: value, ...)`
+* **Init-list (no `init` defined):** `new ClassName { field: value, ... }`
+
+> **Mutability note:**
+> Struct fields are set once at creation. Class fields may be reassigned **inside methods** of the same class. Outside callers mutate via methods (encapsulation). Triad does not expose `public/private` modifiers in v1.0; convention: prefix private fields/methods with `_`.
+
+### 2.4 Enums (sum types)
+
+* Algebraic variants; each case may carry payloads.
+* Useful for **Result/Error** and domain states.
+
+```triad
+enum Result:
+  Ok(value: Int)
+  Err(kind: ErrorKind, message: String)
+end
+
+enum ErrorKind:
+  NotFound
+  Invalid
+  IO(code: Int)
+end
+
+# Construction
+let r1 = Result.Ok(42)
+let r2 = Result.Err(ErrorKind.IO(5), "Disk")
+```
+
+**Matching (minimal)**
+
+* Triad v1.0 uses `if/else` + predicate helpers; a `match` form may land later.
+* Engines should provide `isCase(value, "Ok")` and field accessors:
+
+  * `asOk(value).value`, `asErr(value).kind`, etc. (implementation-supplied helpers)
+
+---
+
+## 3) Macros (compile-time)
+
+```triad
+macro sparkle(level):
+  let shine = level * 2
+  echo "Shine level: " + shine
+  return shine
+end
+```
+
+* Expand inline at compile time.
+* `return` yields an expression/AST splice.
+
+---
+
+## 4) Capsules (runtime)
+
+```triad
+capsule AgentMain [introspective, mutable]:
+  Load R1 Fastest #3
+  loop Deepest Repeat:
+    say "✨"
+    mutate R1 Softest -1
+    jump Repeat Hardest if R1 > 0
+  end
+
+  let glow = sparkle(R1)
+  if glow > 4:
+    tone Brightest "C#5"
+  else:
+    tone Softest "A3"
+  end
+
+  trace capsule
+end
+```
+
+**Attributes**
+
+* `introspective` enables `trace`.
+* `mutable` allows register/memory mutation within the capsule.
+* `sandboxed`, `deterministic` are available intent flags.
+
+---
+
+## 5) Statements (core recap)
+
+* **Variables:** `let x = expr` (parallel: `let a,b = 1,2`).
+* **Registers:** `Load R1 Fastest 3`, `mutate R1 -1`.
+* **I/O:** `say`, `echo`, `tone`.
+* **Flow:** `if/else`, `loop Label: … end`, `jump Label [if cond]`.
+* **Trace:** `trace capsule|registers|vars|all`.
+* **Return:** `return [expr]` (capsule = exit; macro = expansion value; function/method = value).
+
+> New in this spec: **func** inside `struct/class` bodies for methods.
+> (Standalone top-level `func` is reserved for v1.1; for now, methods live inside user types.)
+
+---
+
+## 6) Exceptions
+
+Triad introduces **structured exceptions** with `try/catch/finally/throw`. Exceptions are objects (any value can be thrown; best practice is using **struct/enum** types).
+
+### 6.1 Throwing
+
+```triad
+throw "boom"
+throw Error.IO(code: 5, message: "Disk fail")
+throw Result.Err(ErrorKind.Invalid, "Bad input")
+```
+
+* `throw expr` immediately unwinds to the nearest active `catch`; `finally` blocks still run.
+
+### 6.2 Try/Catch/Finally
+
+```triad
+try:
+  maybeRisky()
+catch e:
+  echo "Caught: " + e
+finally:
+  echo "cleanup"
+end
+```
+
+* `catch` binds the thrown value to an identifier (`e` above).
+* Multiple `catch` blocks are allowed; the first one whose **type guard** matches will handle it.
+* `finally` always runs (whether an exception occurred or not).
+
+#### 6.2.1 Typed catches
+
+Triad supports **type guards** using `as` patterns:
+
+```triad
+try:
+  openFile("data.bin")
+catch e as ErrorKind.IO:
+  echo "I/O code = " + e.code
+catch e as ErrorKind.Invalid:
+  echo "Invalid!"
+catch e:  # fallback
+  echo "Unknown error: " + e
+end
+```
+
+* When using `as <Type>`, `e` is treated as that type (field access allowed).
+* If no guard matches, the exception propagates upward.
+
+#### 6.2.2 Rethrow
+
+```triad
+catch e:
+  logError(e)
+  throw e     # rethrow the same object
+```
+
+### 6.3 Exceptions & capsules
+
+* Uncaught exceptions **terminate the capsule** with a non-zero status (implementation-defined code).
+* `trace capsule` should include the **exception stack** when available and the capsule is `introspective`.
+
+---
+
+## 7) Functions & Methods
+
+### 7.1 Methods inside types
+
+```triad
+struct Box:
+  let w: Int
+  let h: Int
+
+  func area() -> Int:
+    return this.w * this.h
+  end
+end
+```
+
+* Methods may be used in expressions: `let a = Box{w:3,h:4}.area()`.
+
+### 7.2 Constructors
+
+* `class`: define `func init(...)` with **named** parameters.
+* `struct`: no `init`; construct with literal/init-list.
+
+### 7.3 Throws annotation (advisory)
+
+You may annotate a method/capsule with a `throws` attribute in its bracket list:
+
+```triad
+capsule ImportData [throws(ErrorKind.IO), introspective]:
+  try:
+    ingest()
+  catch e as ErrorKind.IO:
+    echo "Handled"
+  end
+end
+```
+
+This is **documentation/intent**; engines may enforce or simply warn.
+
+---
+
+## 8) Examples tying it together
+
+### 8.1 Error model with enums
+
+```triad
+enum FileError:
+  NotFound(path: String)
+  Permission(path: String)
+  IO(code: Int, message: String)
+end
+
+class FileReader:
+  let _path: String
+
+  func init(path: String):
+    this._path = path
+  end
+
+  func readText() -> String:
+    # pretend to do I/O; demonstrate throwing
+    if this._path == "":
+      throw FileError.NotFound("(empty)")
+    end
+    return "contents"
+  end
+end
+
+capsule Demo [introspective]:
+  let r = new FileReader(path: "")
+  try:
+    let text = r.readText()
+    say text
+  catch e as FileError.NotFound:
+    echo "Missing: " + e.path
+  catch e as FileError.IO:
+    echo "I/O(" + e.code + "): " + e.message
+  finally:
+    echo "Done."
+  end
+  trace capsule
+end
+```
+
+### 8.2 Value vs reference
+
+```triad
+struct Vec2:
+  let x: Int
+  let y: Int
+  func add(o: Vec2) -> Vec2:
+    return Vec2 { x: this.x + o.x, y: this.y + o.y }
+  end
+end
+
+class Bag:
+  let item: Int
+  func bump():
+    this.item = this.item + 1
+  end
+end
+
+let v1 = Vec2 { x:1, y:2 }
+let v2 = v1.add( Vec2 { x:2, y:3 } )   # v1 unchanged, v2 is new
+
+let b = new Bag( item: 7 )
+b.bump()                              # modifies same object
+```
+
+---
+
+## 9) Formal grammar (EBNF, updated)
+
+```ebnf
+program         := { import_stmt | macro_def | type_def | capsule_def } ;
+
+import_stmt     := "import" IDENT [ "as" IDENT ] EOL ;
+
+type_def        := struct_def | class_def | enum_def ;
+
+struct_def      := "struct" IDENT ":" EOL
+                   { member | method } 
+                   "end" EOL ;
+
+class_def       := "class" IDENT ":" EOL
+                   { member | ctor | method }
+                   "end" EOL ;
+
+enum_def        := "enum" IDENT ":" EOL
+                   enum_case { enum_case }
+                   "end" EOL ;
+
+enum_case       := IDENT [ "(" enum_fields ")" ] EOL ;
+enum_fields     := enum_field { "," enum_field } ;
+enum_field      := IDENT [ ":" type_ref ] ;
+
+member          := "let" IDENT ":" type_ref EOL ;
+
+ctor            := "func" "init" "(" [ named_params ] ")" ":"? EOL
+                   block
+                   "end" EOL ;
+
+method          := "func" IDENT "(" [ param_list ] ")" [ "->" type_ref ] ":"? EOL
+                   block
+                   "end" EOL ;
+
+named_params    := named_param { "," named_param } ;
+named_param     := IDENT ":" type_ref ;
+
+param_list      := param { "," param } ;
+param           := IDENT ":" type_ref ;
+
+type_ref        := IDENT ;  (* simple names in v1.0 *)
+
+capsule_def     := "capsule" IDENT [ attr_list ] ":" EOL
+                   block
+                   "end" EOL ;
+
+attr_list       := "[" IDENT { "(" arg_list ")" } { "," IDENT [ "(" arg_list ")" ] } "]" ;
+arg_list        := expr { "," expr } ;
+
+block           := { statement } ;
+
+statement       := var_decl
+                 | load_stmt
+                 | mutate_stmt
+                 | say_stmt
+                 | echo_stmt
+                 | tone_stmt
+                 | jump_stmt
+                 | loop_stmt
+                 | if_stmt
+                 | trace_stmt
+                 | return_stmt
+                 | try_stmt
+                 | throw_stmt
+                 | expr_stmt
+                 | EOL ;
+
+expr_stmt       := expr EOL ;
+
+var_decl        := "let" ident_list "=" expr_list EOL
+                 | "let" IDENT [ ":" type_ref ] EOL ;
+
+ident_list      := IDENT { "," IDENT } ;
+expr_list       := expr { "," expr } ;
+
+load_stmt       := ("Load"|"load") REG [ mode ] literal EOL ;
+mutate_stmt     := "mutate" REG [ mode ] mutate_arg EOL ;
+mutate_arg      := (("+"|"-"|"*"|"/") NUMBER) | NUMBER ;
+
+say_stmt        := "say" expr EOL ;
+echo_stmt       := "echo" expr EOL ;
+tone_stmt       := "tone" [ mode ] STRING EOL ;
+
+jump_stmt       := "jump" IDENT [ mode ] [ "if" expr ] EOL ;
+
+loop_stmt       := "loop" [ mode ] IDENT ":" EOL
+                   block
+                   "end" EOL ;
+
+if_stmt         := "if" expr ":" EOL
+                   block
+                   [ "else" ":"? EOL block ]
+                   "end" EOL ;
+
+trace_stmt      := "trace" ("capsule"|"registers"|"vars"|"all") EOL ;
+
+try_stmt        := "try" ":" EOL
+                   block
+                   { catch_clause }
+                   [ "finally" ":" EOL block ]
+                   "end" EOL ;
+
+catch_clause    := "catch" IDENT [ "as" type_ref ] ":"? EOL block ;
+
+throw_stmt      := "throw" expr EOL ;
+
+mode            := IDENT ;             (* e.g., Fastest, Softest, Hardest, ... *)
+REG             := "R" DIGIT { DIGIT } ;
+literal         := NUMBER | STRING | BOOL | NULL ;
+
+expr            := or_expr ;
+or_expr         := and_expr { "or" and_expr } ;
+and_expr        := equality { "and" equality } ;
+equality        := relational { ("=="|"!=") relational } ;
+relational      := additive { ("<"|"<="|">"|">=") additive } ;
+additive        := multiplicative { ("+"|"-") multiplicative } ;
+multiplicative  := unary { ("*"|"/"|"%" ) unary } ;
+unary           := [("+"|"-"|"not")] primary ;
+primary         := literal
+                 | IDENT func_or_access
+                 | "new" IDENT ctor_args
+                 | "(" expr ")" ;
+
+func_or_access  := ( "(" [ call_args ] ")" | object_init | member_tail )* ;
+
+member_tail     := "." IDENT ( "(" [ call_args ] ")" )? ;
+
+ctor_args       := "(" [ named_call_args ] ")"
+                 | object_init ;
+
+object_init     := "{" init_field { "," init_field } "}" ;
+init_field      := IDENT ":" expr ;
+
+call_args       := expr { "," expr } ;
+named_call_args := named_call_arg { "," named_call_arg } ;
+named_call_arg  := IDENT ":" expr ;
+
+BOOL            := "true" | "false" ;
+NULL            := "null" ;
+EOL             := newline | ";" ;
+```
+
+---
+
+## 10) Diagnostics & rules of thumb
+
+* **Unknown field/variant** → check struct/enum spelling.
+* **Illegal assignment to struct field** → struct fields are immutable post-construction; return a new struct or use a class.
+* **Uncaught exception** → add `try/catch` or let the capsule fail (non-zero status).
+* **Trace without introspection** → add `[introspective]` to the capsule.
+
+---
+
+## 11) Micro-cheat sheet (new bits)
+
+* **Struct:**
+  `struct S: let a:Int; func f()->Int: ... end end`
+* **Class:**
+  `class C: let a:Int; func init(a:Int): ... end end; let c=new C(a:1)`
+* **Enum:**
+  `enum E: CaseA(x:Int) CaseB end; let e=E.CaseA(5)`
+* **Try/Catch/Finally:**
+
+  ```
+  try: risky()
+  catch e as E.CaseA: ...
+  catch e: ...
+  finally: cleanup()
+  end
+  ```
+* **Throw:** `throw E.CaseB`
+
+---
+
+If you want, I’ll spin this into:
+
+* a **print-ready PDF syntax card**,
+* an **`.ebnf` file** you can drop into your repo, and
+* a **VSCode `tmLanguage.json`** starter with all new keywords and tokens.
+
 
 ---
 
