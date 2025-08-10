@@ -1,0 +1,84 @@
+{
+  "name": "Triad",
+  "scopeName": "source.triad",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#idents"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.triad",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.triad",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.triad",
+          "begin": "\"",
+          "end": "\""
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.triad",
+          "match": "\\b\\d+(?:_\\d+)*(?:\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.triad",
+          "match": "\\b(macro|end|struct|class|enum|pure|def|try|catch|finally|throw|if|else|for|in|loop|new|and|or|say|echo|return)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.triad",
+          "match": "\\b(Int|Float|Bool|String|Unit|Any)\\b"
+        }
+      ]
+    },
+    "idents": {
+      "patterns": [
+        {
+          "name": "variable.other.triad",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    }
+  },
+  "fileTypes": [
+    "triad"
+  ],
+  "uuid": "c5d3a0b6-7a2f-41a7-8cc7-3e0bb9a6c9ab"
+}

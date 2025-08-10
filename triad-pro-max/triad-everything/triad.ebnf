@@ -1,0 +1,51 @@
+
+# Triad Language EBNF (compact, full-grammar snapshot)
+program        ::= { topDecl | stmt } EOF ;
+
+topDecl        ::= macroDecl | typeDecl | purityDecl ;
+macroDecl      ::= "macro" IDENT "(" [ paramList ] ")" ":" block "end" ;
+paramList      ::= IDENT { "," IDENT } ;
+typeDecl       ::= ( "struct" | "class" | "enum" ) IDENT "{" { memberDecl } "}" ;
+memberDecl     ::= IDENT [ ":" typeRef ] [ "=" expr ] ";" ;
+purityDecl     ::= "pure" "def" IDENT "." IDENT "(" [ argDecls ] ")" ;
+argDecls       ::= argDecl { "," argDecl } ;
+argDecl        ::= IDENT [ ":" typeRef ] ;
+
+stmt           ::= simpleStmt ";" | compoundStmt ;
+simpleStmt     ::= assign | expr | "say" expr | "echo" expr ;
+compoundStmt   ::= ifStmt | forStmt | whileStmt | tryStmt | block ;
+
+assign         ::= IDENT "=" expr ;
+ifStmt         ::= "if" "(" expr ")" block [ "else" block ] ;
+forStmt        ::= "for" IDENT "in" expr ".." expr block ;
+whileStmt      ::= "loop" block ;
+tryStmt        ::= "try" block { catchClause } [ finallyClause ] ;
+catchClause    ::= "catch" IDENT "as" typeRef { "|" typeRef } block ;
+finallyClause  ::= "finally" block ;
+
+block          ::= "{" { stmt } "}" ;
+
+expr           ::= orExpr ;
+orExpr         ::= andExpr { "or" andExpr } ;
+andExpr        ::= cmpExpr { "and" cmpExpr } ;
+cmpExpr        ::= addExpr { ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) addExpr } ;
+addExpr        ::= mulExpr { ( "+" | "-" ) mulExpr } ;
+mulExpr        ::= unary  { ( "*" | "/" | "%" ) unary  } ;
+unary          ::= [ "!" | "-" ] primary ;
+primary        ::= literal
+                 | IDENT
+                 | "(" exprList ")"
+                 | "new" IDENT "(" [ exprList ] ")"
+                 | primary "." IDENT                      # field
+                 | primary "." IDENT "(" [ exprList ] ")" # call
+                 | primary "[" NUMBER "]"                 # index
+                 ;
+
+exprList       ::= expr { "," expr } ;
+
+literal        ::= NUMBER | STRING | tupleLit ;
+tupleLit       ::= "(" namedElems ")" ;
+namedElems     ::= namedElem { "," namedElem } ;
+namedElem      ::= IDENT ":" expr ;
+
+typeRef        ::= IDENT [ "." IDENT ] [ "?" ] ;
