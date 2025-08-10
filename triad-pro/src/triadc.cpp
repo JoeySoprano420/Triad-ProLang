@@ -5,32 +5,46 @@
 #include <sstream>
 #include <iostream>
 #include <filesystem>
+#include <string_view>
+#include <variant>
+#include <optional>
 
-using namespace triad;
 namespace fs = std::filesystem;
+using std::string_view;
+using namespace triad;
 
-static std::string slurp(const std::string& path) {
+[[nodiscard]] static std::string slurp(const std::string& path) noexcept {
   std::ifstream f(path);
   if (!f) throw std::runtime_error("Cannot open file: " + path);
-  std::ostringstream o;
-  o << f.rdbuf();
-  return o.str();
-}
-
-static void run_vm(const Chunk& ch) {
-  VM vm;
-  vm.exec(const_cast<Chunk&>(ch)); // VM expects non-const
-}
-
-static void run_ast(const std::string& src) {
-  // Stub: interpret AST directly
-  std::cout << "[AST interpreter not yet implemented]\n";
+  return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 }
 
 static void emit_to_file(const std::string& code, const std::string& outPath) {
   std::ofstream out(outPath);
   if (!out) throw std::runtime_error("Cannot write to: " + outPath);
   out << code;
+}
+
+static void run_vm(const Chunk& ch, bool trace = false) {
+  VM vm;
+  if (trace) vm.enable_trace(); // capsule-aware trace hook
+  vm.exec(ch);
+}
+
+static void run_ast(const std::string& src) {
+  std::cout << "[AST interpreter not yet implemented]\n";
+}
+
+static void run_tests(bool verbose = false) {
+  for (const auto& entry : fs::directory_iterator("tests")) {
+    if (entry.path().extension() == ".triad") {
+      std::cout << "Running: " << entry.path().filename() << "\n";
+      std::string src = slurp(entry.path().string());
+      Chunk ch = parse_to_chunk(src);
+      if (verbose) std::cout << "[Parsed chunk with " << ch.code().size() << " instructions]\n";
+      run_vm(ch);
+    }
+  }
 }
 
 int main(int argc, char** argv) {
@@ -73,38 +87,30 @@ int main(int argc, char** argv) {
 
   try {
     if (mode == "run-tests") {
-      for (const auto& entry : fs::directory_iterator("tests")) {
-        if (entry.path().extension() == ".triad") {
-          std::cout << "Running: " << entry.path().filename() << "\n";
-          std::string src = slurp(entry.path().string());
-          Chunk ch = parse_to_chunk(src);
-          run_vm(ch);
-        }
-      }
+      run_tests(verbose);
       return 0;
     }
 
     std::string src = slurp(target);
     Chunk ch = parse_to_chunk(src);
 
-    if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+    if (verbose) std::cout << "[Parsed chunk with " << ch.code().size() << " instructions]\n";
     if (showBytecode) ch.dump(); // Assuming Chunk::dump() exists
     if (showAst) {
-      ASTNode* ast = parse_to_ast(src); // Stub
-      ast->dump(); // Assuming ASTNode::dump() exists
+      std::cout << "[AST dump not yet implemented]\n";
+      // ASTNode* ast = parse_to_ast(src); ast->dump();
     }
 
     if (mode == "run-vm") {
-      if (traceVm) VM::enable_trace(); // Stub
-      run_vm(ch);
+      run_vm(ch, traceVm);
     } else if (mode == "run-ast") {
       run_ast(src);
     } else if (mode == "emit-nasm") {
-      std::string asm_code = emit_nasm(ch);
+      std::string asm_code = emit_nasm(ch); // stub
       if (!outFile.empty()) emit_to_file(asm_code, outFile);
       else std::cout << asm_code;
     } else if (mode == "emit-llvm") {
-      std::string llvm_code = emit_llvm(ch);
+      std::string llvm_code = emit_llvm(ch); // stub
       if (!outFile.empty()) emit_to_file(llvm_code, outFile);
       else std::cout << llvm_code;
     } else {
