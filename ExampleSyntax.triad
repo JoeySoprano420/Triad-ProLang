@@ -42,3 +42,57 @@ end
 | `tone`               | Emits audio tone with a symbolic intensity                       | Format `"NoteOctave"`                                       |
 | `trace capsule`      | Dumps execution trace, register values, and macro expansion data | Often used in introspective debugging                       |
 
+macro sparkle(level):
+  let shine = level * 2
+  echo "Shine level: " + shine
+  return shine
+end
+
+struct Point:
+  let x: Int
+  let y: Int
+  func offset(dx: Int, dy: Int) -> Point:
+    return Point { x: this.x + dx, y: this.y + dy }
+  end
+end
+
+enum ErrorKind:
+  NotFound
+  IO(code: Int)
+end
+
+class Counter:
+  let value: Int
+  func init(start: Int): this.value = start end
+  func inc() -> Int:
+    this.value = this.value + 1
+    return this.value
+  end
+end
+
+capsule Demo [introspective, mutable]:
+  Load R1 Fastest #3
+  loop Deepest Repeat:
+    say "✨"
+    mutate R1 Softest -1
+    jump Repeat Hardest if R1 > 0
+  end
+
+  let glow = sparkle(R1)
+  if glow > 4:
+    tone Brightest "C#5"
+  else:
+    tone Softest "A3"
+  end
+
+  try:
+    let c = new Counter(start: 10)
+    echo "count=" + c.inc()
+  catch e as ErrorKind.IO:
+    echo "I/O error: " + e.code
+  finally:
+    echo "cleanup"
+  end
+
+  trace capsule
+end
