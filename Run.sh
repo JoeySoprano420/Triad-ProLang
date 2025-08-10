@@ -1,1 +1,0 @@
-triad_min
