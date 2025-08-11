@@ -5,6 +5,8 @@
 #include <cctype>
 #include <stdexcept>
 #include <utility>
+#include <ostream>
+#include <iostream>
 
 namespace triad {
 
@@ -132,4 +134,85 @@ namespace triad {
     std::vector<Token> run(); // To be implemented in triad_lexer.cpp
   };
 
+  inline const char* tok_kind_name(TokKind kind) {
+    switch (kind) {
+      case TokKind::Eof: return "Eof";
+      case TokKind::Id: return "Id";
+      case TokKind::Num: return "Num";
+      case TokKind::Str: return "Str";
+      case TokKind::LParen: return "LParen";
+      case TokKind::RParen: return "RParen";
+      case TokKind::LBrace: return "LBrace";
+      case TokKind::RBrace: return "RBrace";
+      case TokKind::LBracket: return "LBracket";
+      case TokKind::RBracket: return "RBracket";
+      case TokKind::Comma: return "Comma";
+      case TokKind::Dot: return "Dot";
+      case TokKind::Colon: return "Colon";
+      case TokKind::Semicolon: return "Semicolon";
+      case TokKind::Range: return "Range";
+      case TokKind::Plus: return "Plus";
+      case TokKind::Minus: return "Minus";
+      case TokKind::Star: return "Star";
+      case TokKind::Slash: return "Slash";
+      case TokKind::Percent: return "Percent";
+      case TokKind::Eq: return "Eq";
+      case TokKind::EqEq: return "EqEq";
+      case TokKind::Ne: return "Ne";
+      case TokKind::Lt: return "Lt";
+      case TokKind::Le: return "Le";
+      case TokKind::Gt: return "Gt";
+      case TokKind::Ge: return "Ge";
+      case TokKind::Bang: return "Bang";
+      case TokKind::KwMacro: return "KwMacro";
+      case TokKind::KwEnd: return "KwEnd";
+      case TokKind::KwStruct: return "KwStruct";
+      case TokKind::KwClass: return "KwClass";
+      case TokKind::KwEnum: return "KwEnum";
+      case TokKind::KwPure: return "KwPure";
+      case TokKind::KwDef: return "KwDef";
+      case TokKind::KwTry: return "KwTry";
+      case TokKind::KwCatch: return "KwCatch";
+      case TokKind::KwFinally: return "KwFinally";
+      case TokKind::KwThrow: return "KwThrow";
+      case TokKind::KwIf: return "KwIf";
+      case TokKind::KwElse: return "KwElse";
+      case TokKind::KwFor: return "KwFor";
+      case TokKind::KwIn: return "KwIn";
+      case TokKind::KwLoop: return "KwLoop";
+      case TokKind::KwNew: return "KwNew";
+      case TokKind::KwAnd: return "KwAnd";
+      case TokKind::KwOr: return "KwOr";
+      case TokKind::KwSay: return "KwSay";
+      case TokKind::KwEcho: return "KwEcho";
+      case TokKind::KwReturn: return "KwReturn";
+      default: return "Unknown";
+    }
+  }
+
+  inline void dump_tokens(const std::vector<Token>& tokens, std::ostream& os = std::cout) {
+    for (const auto& tok : tokens) {
+      os << "Token(" << tok_kind_name(tok.kind)
+         << ", text=\"" << tok.text << "\""
+         << ", number=" << tok.number
+         << ", line=" << tok.line
+         << ", col=" << tok.col
+         << ")\n";
+    }
+  }
+
 } // namespace triad
+
+#ifdef TRIAD_LEXER_DUMP_MAIN
+#include <iostream>
+#include <string>
+
+int main() {
+  using namespace triad;
+  std::string src = "let x = 42; say x;";
+  Lexer lexer(src);
+  auto tokens = lexer.run();
+  dump_tokens(tokens);
+  return 0;
+}
+#endif
