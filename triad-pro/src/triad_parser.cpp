@@ -1,9 +1,9 @@
-
 #include "triad_lexer.hpp"
 #include "triad_ast.hpp"
 #include "triad_bytecode.hpp"
 #include <stdexcept>
 #include <memory>
+#include <iostream>
 
 namespace triad {
 
@@ -167,4 +167,85 @@ static Chunk parse_to_chunk(const std::string& src){
   Parser p(std::move(toks)); return p.parse();
 }
 
+// --- Additional: Utility to pretty-print a Chunk for debugging ---
+
+#include <iostream>
+
+namespace triad {
+
+void dump_chunk(const Chunk& ch) {
+  std::cout << "Chunk dump:\n";
+  for (size_t i = 0; i < ch.code.size(); ++i) {
+    const Instr& instr = ch.code[i];
+    std::cout << "  [" << i << "] Op: " << static_cast<int>(instr.op)
+              << " a: " << instr.a << " b: " << instr.b << " c: " << instr.c << "\n";
+  }
+  std::cout << "Constants:\n";
+  for (size_t i = 0; i < ch.consts.size(); ++i) {
+    const Value& v = ch.consts[i];
+    if (v.tag == Value::Num)
+      std::cout << "  [" << i << "] Num: " << v.num << "\n";
+    else if (v.tag == Value::Str)
+      std::cout << "  [" << i << "] Str: \"" << v.str << "\"\n";
+  }
+  std::cout << "Names:\n";
+  for (size_t i = 0; i < ch.names.size(); ++i) {
+    std::cout << "  [" << i << "] " << ch.names[i] << "\n";
+  }
+}
+
 } // namespace triad
+
+// --- Additional: Utility to disassemble a single instruction for debugging ---
+
+namespace triad {
+
+std::string disasm_instr(const Instr& instr, const Chunk& ch) {
+  std::string out = "Op: " + std::to_string(static_cast<int>(instr.op));
+  out += " a: " + std::to_string(instr.a);
+  out += " b: " + std::to_string(instr.b);
+  out += " c: " + std::to_string(instr.c);
+
+  // Optionally, show constant or name if relevant
+  if (instr.op == Op::PUSH_CONST && instr.a >= 0 && instr.a < static_cast<int>(ch.consts.size())) {
+    const Value& v = ch.consts[instr.a];
+    if (v.tag == Value::Num)
+      out += " ; const(num): " + std::to_string(v.num);
+    else if (v.tag == Value::Str)
+      out += " ; const(str): \"" + v.str + "\"";
+  }
+  if ((instr.op == Op::PUSH_VAR || instr.op == Op::SET_VAR || instr.op == Op::GET_FIELD || instr.op == Op::CALL_METHOD || instr.op == Op::NEW_CLASS)
+      && instr.a >= 0 && instr.a < static_cast<int>(ch.names.size())) {
+    out += " ; name: " + ch.names[instr.a];
+  }
+  return out;
+}
+
+} // namespace triad
+
+#ifdef TRIAD_PARSER_TEST_MAIN
+#include <string>
+
+int main() {
+  using namespace triad;
+  std::string src = "say 1+2*3;";
+  Chunk ch = parse_to_chunk(src);
+  dump_chunk(ch);
+  return 0;
+}
+#endif
+
+#ifdef TRIAD_PARSER_DISASM_MAIN
+#include <string>
+
+int main() {
+  using namespace triad;
+  std::string src = "x = 42; say x;";
+  Chunk ch = parse_to_chunk(src);
+  std::cout << "Disassembly:\n";
+  for (size_t i = 0; i < ch.code.size(); ++i) {
+    std::cout << "[" << i << "] " << disasm_instr(ch.code[i], ch) << "\n";
+  }
+  return 0;
+}
+#endif
