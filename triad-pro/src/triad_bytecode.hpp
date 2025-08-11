@@ -1,5 +1,3 @@
-#include "triad_parser.cpp"
-#include "triad_vm.cpp"
 #include "triad_ast.hpp"
 #include <fstream>
 #include <sstream>
@@ -124,3 +122,278 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+      std::cerr << "Error: No input file specified.\n";
+       return 1;
+     }
+     std::string src = slurp(target);
+     Chunk ch = parse_to_chunk(src);
+     if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+     if (showBytecode) ch.dump(); // Assuming Chunk::dump() exists
+     if (showAst) {
+       std::cout << "[AST dump not yet implemented]\n";
+       // ASTNode* ast = parse_to_ast(src); ast->dump();
+     }
+     if (mode == "run-vm") {
+       run_vm(ch, traceVm);
+     } else if (mode == "run-ast") {
+       run_ast(src);
+     } else if (mode == "emit-nasm") {
+         std::string asm_code = emit_nasm(ch); // stub
+         if (!outFile.empty()) emit_to_file(asm_code, outFile);
+       else std::cout << asm_code; // Print to stdout if no output file specified
+     } else if (mode == "emit-llvm") {
+       std::string llvm_code = emit_llvm(ch); // stub
+       if (!outFile.empty()) emit_to_file(llvm_code, outFile);
+       else std::cout << llvm_code; // Print to stdout if no output file specified
+     } else {
+       std::cerr << "Unknown mode: " << mode << "\n";
+       return 1;
+     }
+   } catch (const std::exception& e) {
+     std::cerr << "Error: " << e.what() << "\n";
+     return 1;
+   }
+   return 0;
+   }
+   std::cout << "Triad Compiler v0.9.1\n";
+   std::string mode = argv[1];
+   std::string target = argc > 2 ? argv[2] : "";
+   std::string outFile;
+   bool verbose = false, showAst = false, showBytecode = false, traceVm
+       = false;
+   for (int i = 3; i < argc; ++i) {
+     std::string arg = argv[i];
+     if (arg == "-o" && i + 1 < argc) outFile = argv[++i];
+     else if (arg == "--verbose") verbose = true;
+	 else if (arg
+         == "--show-ast") showAst = true;
+     else if (arg == "--show-bytecode") showBytecode = true;
+     else if (arg == "--trace-vm") traceVm = true;
+     else if (arg == "--version") {
+       std::cout << "Triad Compiler v0.9.1\n";
+       return 0;
+     } else {
+       std::cerr << "Unknown argument: " << arg << "\n";
+       return 1;
+     }
+     }
+   try {
+     if (mode == "run-tests") {
+       run_tests(verbose);
+       return 0;
+     }
+     if (target.empty()) {
+       std::cerr << "Error: No input file specified.\n";
+       return 1;
+     }
+     std::string src = slurp(target);
+     Chunk ch = parse_to_chunk(src);
+     if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+     if (showBytecode) ch.dump(); // Assuming Chunk::dump() exists
+     if (showAst) {
+       std::cout << "[AST dump not yet implemented]\n";
+       // ASTNode* ast = parse_to_ast(src); ast->dump();
+     }
+     if (mode == "run-vm") {
+       run_vm(ch, traceVm);
+     } else if (mode == "run-ast") {
+       run_ast(src);
+     } else if (mode == "emit-nasm") {
+         std::string asm_code = emit_nasm(ch); // stub
+         if (!outFile.empty()) emit_to_file(asm_code, outFile);
+       else std::cout << asm_code; // Print to stdout if no output file specified
+     } else if (mode == "emit-llvm") {
+       std::string llvm_code = emit_llvm(ch); // stub
+       if (!outFile.empty()) emit_to_file(llvm_code, outFile);
+       else std::cout << llvm_code; // Print to stdout if no output file specified
+     } else {
+       std::cerr << "Unknown mode: " << mode << "\n";
+       return 1;
+     }
+   } catch (const std::exception& e) {
+     std::cerr << "Error: " << e.what() << "\n";
+     return 1;
+   }
+   return 0;
+   }
+   std::cout << "Triad Compiler v0.9.1\n";
+   std::string mode = argv[1];
+   std::string target = argc > 2 ? argv[2] : "";
+   std::string outFile;
+   bool verbose = false, showAst = false, showBytecode = false, traceVm
+	   = false;
+   for (int i = 3; i < argc; ++i) {
+     std::string arg = argv[i];
+     if (arg == "-o" && i + 1 < argc) outFile = argv[++i];
+     else if (arg == "--verbose") verbose = true;
+     else if (arg == "--show-ast") showAst = true;
+     else if (arg == "--show-bytecode") showBytecode = true;
+     else if (arg == "--trace-vm") traceVm = true;
+     else if (arg == "--version") {
+       std::cout << "Triad Compiler v0.9.1\n";
+       return 0;
+     } else {
+		 std::cerr << "Unknown argument: " << arg << "\n";
+		 return 1;
+         }
+   }
+   try {
+     if (mode == "run-tests") {
+       run_tests(verbose);
+       return 0;
+     }
+     if (target.empty()) {
+       std::cerr << "Error: No input file specified.\n";
+       return 1;
+     }
+     std::string src = slurp(target);
+     Chunk ch = parse_to_chunk(src);
+     if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+     if (showBytecode) ch.dump(); // Assuming Chunk::dump() exists
+     if (showAst) {
+       std::cout << "[AST dump not yet implemented]\n";
+       // ASTNode* ast = parse_to_ast(src); ast->dump();
+     }
+     if (mode == "run-vm") {
+       run_vm(ch, traceVm);
+     } else if (mode == "run-ast") {
+       run_ast(src);
+     } else if (mode == "emit-nasm") {
+         std::string asm_code = emit_nasm(ch); // stub
+         if (!outFile.empty()) emit_to_file(asm_code, outFile);
+       else std::cout << asm_code; // Print to stdout if no output file specified
+     } else if (mode == "emit-llvm") {
+       std::string llvm_code = emit_llvm(ch); // stub
+       if (!outFile.empty()) emit_to_file(llvm_code, outFile);
+       else std::cout << llvm_code; // Print to stdout if no output file specified
+     } else {
+       std::cerr << "Unknown mode: " << mode << "\n";
+       return 1;
+     }
+   } catch (const std::exception& e) {
+     std::cerr << "Error: " << e.what() << "\n";
+     return 1;
+   }
+   return 0;
+   }
+   std::cout << "Triad Compiler v0.9.1\n";
+   std::string mode = argv[1];
+   std::string target = argc > 2 ? argv[2] : "";
+   std::string outFile;
+   bool verbose = false, showAst = false, showBytecode = false, traceVm
+	   = false;
+   for (int i = 3; i < argc; ++i) {
+     std::string arg = argv[i];
+     if (arg == "-o" && i + 1 < argc) outFile = argv[++i];
+     else if (arg == "--verbose") verbose = true;
+     else if (arg == "--show-ast") showAst = true;
+     else if (arg == "--show-bytecode") showBytecode = true;
+     else if (arg == "--trace-vm") traceVm = true;
+     else if (arg == "--version") {
+       std::cout << "Triad Compiler v0.9.1\n";
+       return 0;
+	 }
+	 else {
+         std::cerr << "Unknown argument: " << arg << "\n";
+         return 1;
+         }
+   }
+   try {
+     if (mode == "run-tests") {
+       run_tests(verbose);
+       return 0;
+     }
+     if (target.empty()) {
+       std::cerr << "Error: No input file specified.\n";
+       return 1;
+     }
+     std::string src = slurp(target);
+     Chunk ch = parse_to_chunk(src);
+     if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+     if (showBytecode) ch.dump(); // Assuming Chunk::dump() exists
+     if (showAst) {
+       std::cout << "[AST dump not yet implemented]\n";
+       // ASTNode* ast = parse_to_ast(src); ast->dump();
+     }
+     if (mode == "run-vm") {
+       run_vm(ch, traceVm);
+     } else if (mode == "run-ast") {
+       run_ast(src);
+     } else if (mode == "emit-nasm") {
+         std::string asm_code = emit_nasm(ch); // stub
+         if (!outFile.empty()) emit_to_file(asm_code, outFile);
+       else std::cout << asm_code; // Print to stdout if no output file specified
+     } else if (mode == "emit-llvm") {
+       std::string llvm_code = emit_llvm(ch); // stub
+       if (!outFile.empty()) emit_to_file(llvm_code, outFile);
+       else std::cout << llvm_code; // Print to stdout if no output file specified
+     } else {
+       std::cerr << "Unknown mode: " << mode << "\n";
+       return 1;
+     }
+   } catch (const std::exception& e) {
+     std::cerr << "Error: " << e.what() << "\n";
+     return 1;
+   }
+   return 0;
+   }
+   std::cout << "Triad Compiler v0.9.1\n";
+   std::string mode = argv[1];
+   std::string target = argc > 2 ? argv[2] : "";
+   std::string outFile;
+   bool verbose = false, showAst = false, showBytecode = false, traceVm
+	   = false;
+   for (int i = 3; i < argc; ++i) {
+     std::string arg = argv[i];
+     if (arg == "-o" && i + 1 < argc) outFile = argv[++i];
+     else if (arg == "--verbose") verbose = true;
+     else if (arg == "--show-ast") showAst = true;
+     else if (arg == "--show-bytecode") showBytecode = true;
+     else if (arg == "--trace-vm") traceVm = true;
+     else if (arg == "--version") {
+       std::cout << "Triad Compiler v0.9.1\n";
+       return 0;
+     } else {
+		 std::cerr << "Unknown argument: " << arg << "\n";
+         return 1;
+         }
+   }
+   try {
+     if (mode == "run-tests") {
+       run_tests(verbose);
+       return 0;
+     }
+     if (target.empty()) {
+       std::cerr << "Error: No input file specified.\n";
+       return 1;
+     }
+     std::string src = slurp(target);
+     Chunk ch = parse_to_chunk(src);
+     if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+     if (showBytecode) ch.dump(); // Assuming Chunk::dump() exists
+     if (showAst) {
+       std::cout << "[AST dump not yet implemented]\n";
+       // ASTNode* ast = parse_to_ast(src); ast->dump();
+     }
+     if (mode == "run-vm") {
+       run_vm(ch, traceVm);
+     } else if (mode == "run-ast") {
+       run_ast(src);
+     } else if (mode == "emit-nasm") {
+         std::string asm_code = emit_nasm(ch); // stub
+         if (!outFile.empty()) emit_to_file(asm_code, outFile);
+       else std::cout << asm_code; // Print to stdout if no output file specified
+     } else if (mode == "emit-llvm") {
+       std::string llvm_code = emit_llvm(ch); // stub
+       if (!outFile.empty()) emit_to_file(llvm_code, outFile);
+       else std::cout << llvm_code; // Print to stdout if no output file specified
+     } else {
+       std::cerr << "Unknown mode: " << mode << "\n";
+       return 1;
+     }
+   } catch (const std::exception& e) {
+     std::cerr << "Error: " << e.what() << "\n";
+     return 1;
+   }
+   return 0;
+   }
