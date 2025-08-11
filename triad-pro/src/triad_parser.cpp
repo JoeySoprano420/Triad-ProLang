@@ -249,3 +249,230 @@ int main() {
   return 0;
 }
 #endif
+// --- Additional: Utility to serialize and deserialize Chunk to/from a simple text format ---
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <stdexcept>
+namespace triad {
+	// Serialize a Chunk to a text stream (for debugging or simple persistence)
+    inline void serialize_chunk(const Chunk& ch, std::ostream& os) {
+        os << "CHUNK\n";
+        os << "CODE " << ch.code.size() << "\n";
+        for (const auto& instr : ch.code) {
+            os << static_cast<int>(instr.op) << " " << instr.a << " " << instr.b << " " << instr.c << "\n";
+        }
+        os << "CONSTS " << ch.consts.size() << "\n";
+        for (const auto& v : ch.consts) {
+            if (v.tag == Value::Num) {
+                os << "N " << v.num << "\n";
+            } else if (v.tag == Value::Str) {
+                os << "S " << v.str << "\n";
+            }
+        }
+        os << "NAMES " << ch.names.size() << "\n";
+        for (const auto& name : ch.names) {
+            os << name << "\n";
+        }
+	}
+    // Deserialize a Chunk from a text stream
+    inline Chunk deserialize_chunk(std::istream& is) {
+        Chunk ch;
+        std::string header;
+        is >> header;
+        if (header != "CHUNK") throw std::runtime_error("Invalid chunk header");
+        std::string section;
+        size_t count = 0;
+        is >> section >> count;
+        if (section != "CODE") throw std::runtime_error("Expected CODE section");
+        for (size_t i = 0; i < count; ++i) {
+            int op, a, b, c;
+            is >> op >> a >> b >> c;
+            ch.code.push_back({static_cast<Op>(op), a, b, c});
+        }
+        is >> section >> count;
+        if (section != "CONSTS") throw std::runtime_error("Expected CONSTS section");
+        for (size_t i = 0; i < count; ++i) {
+            char type;
+            is >> type;
+            if (type == 'N') {
+                double num;
+                is >> num;
+                ch.consts.push_back(Value::number(num));
+            } else if (type == 'S') {
+                std::string str;
+                is >> std::ws;
+                std::getline(is, str);
+                ch.consts.push_back(Value::string(str));
+            }
+        }
+        is >> section >> count;
+        if (section != "NAMES") throw std::runtime_error("Expected NAMES section");
+        is >> std::ws;
+        for (size_t i = 0; i < count; ++i) {
+            std::string name;
+            std::getline(is, name);
+            ch.names.push_back(name);
+        }
+        return ch;
+	}
+#ifdef TRIAD_SERIALIZE_MAIN
+    int main(int argc, char** argv) {
+        if (argc < 2) {
+            std::cerr << "Usage: triad_serialize <input.triad> [output.chunk]\n";
+            return 1;
+        }
+        std::string inputFile = argv[1];
+        std::string outputFile = argc > 2 ? argv[2] : "";
+        std::ifstream ifs(inputFile);
+        if (!ifs) {
+            std::cerr << "Error opening input file: " << inputFile << "\n";
+            return 1;
+        }
+        Chunk ch = parse_to_chunk(ifs);
+        ifs.close();
+        if (!outputFile.empty()) {
+            std::ofstream ofs(outputFile);
+            if (!ofs) {
+                std::cerr << "Error opening output file: " << outputFile << "\n";
+                return 1;
+            }
+            serialize_chunk(ch, ofs);
+            ofs.close();
+            std::cout << "Serialized chunk to " << outputFile << "\n";
+        } else {
+            serialize_chunk(ch, std::cout);
+        }
+        return 0;
+	}
+#endif
+} // namespace triad
+// --- Additional: Utility to disassemble a Chunk from a .triad file ---
+#ifdef TRIAD_DISASM_MAIN
+#include <string>
+#include <fstream>
+int main(int argc, char** argv) {
+  using namespace triad;
+  if (argc < 2) {
+    std::cout << "Usage: triad_disasm <file.triad>\n";
+    return 1;
+  }
+  std::string inputFile = argv[1];
+  std::ifstream ifs(inputFile);
+  if (!ifs) {
+    std::cerr << "Error opening file: " << inputFile << "\n";
+    return 1;
+  }
+  Chunk ch = parse_to_chunk(ifs);
+  ifs.close();
+  std::cout << "Disassembly of " << inputFile << ":\n";
+  for (size_t i = 0; i < ch.code.size(); ++i) {
+    std::cout << "[" << i << "] " << disasm_instr(ch.code[i], ch) << "\n";
+  }
+  return 0;
+}
+#endif
+// --- Main program to parse command line and run modes ---
+#ifdef TRIAD_PARSER_MAIN
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <stdexcept>
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cout << "Triad Compiler CLI\n"
+              << "Usage: triadc <mode> <file.triad | dir> [options]\n"
+              << "Modes:\n"
+              << "  run-vm       Execute via VM\n"
+              << "  run-ast      Execute via AST interpreter\n"
+              << "  emit-nasm    Emit NASM assembly\n"
+              << "  emit-llvm    Emit LLVM IR\n"
+              << "  run-tests    Execute all .triad files in /tests\n"
+              << "Options:\n"
+              << "  -o <file>    Output to file\n"
+              << "  --verbose    Show debug info\n"
+              << "  --show-ast   Print AST\n"
+              << "  --show-bytecode Print bytecode\n"
+		<< "  --trace-vm   Trace
+        << "  --version    Show version\n";
+    return 0;
+  }
+  std::string mode = argv[1];
+  std::string input = argc > 2 ? argv[2] : "";
+  std::string outFile;
+  bool verbose = false, showAst = false, showBytecode = false, traceVm = false;
+  for (int i = 3; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "-o" && i + 1 < argc) outFile = argv[++i];
+    else if (arg == "--verbose") verbose = true;
+    else if (arg == "--show-ast") showAst = true;
+    else if (arg == "--show-bytecode") showBytecode = true;
+    else if (arg == "--trace-vm") traceVm = true;
+	else if (arg == "--version") {
+        std::cout << "Triad Compiler v0.9.1\n";
+        return 0;
+    } else {
+      std::cerr << "Unknown argument: " << arg << "\n";
+      return 1;
+    }
+  }
+  try {
+    if (mode == "run-tests") {
+      // run_tests(verbose); // Implement test runner as needed
+      std::cout << "[Test runner not yet implemented]\n";
+      return 0;
+    }
+    if (input.empty()) {
+      std::cerr << "Error: No input file specified.\n";
+      return 1;
+    }
+	std::string src = slurp(input);
+    Chunk ch = parse_to_chunk(src);
+    if (verbose) std::cout << "[Parsed chunk with " << ch.code.size() << " instructions]\n";
+    if (showBytecode) dump_chunk(ch);
+    if (showAst) {
+      std::cout << "[AST dump not yet implemented]\n";
+    }
+    // Handle other modes: run-vm, run-ast, emit-nasm, emit-llvm
+    if (mode == "run-vm") {
+      std::cout << "[VM execution not yet implemented]\n";
+    } else if (mode == "run-ast") {
+      std::cout << "[AST interpreter not yet implemented]\n";
+    } else if (mode == "emit-nasm") {
+      std::cout << "[NASM emission not yet implemented]\n";
+    } else if (mode == "emit-llvm") {
+      std::cout << "[LLVM IR emission not yet implemented]\n";
+    } else {
+      std::cerr << "Unknown mode: " << mode << "\n";
+      return 1;
+    }
+  } catch (const std::exception& e) {
+      std::cerr << "Error: " << e.what() << "\n";
+      return 1;
+  }
+  return 0;
+}
+#endif
+//       std::cout << "[AST dump not yet implemented]\n";
+      return;
+    }
+    // Handle other modes: run-vm, run-ast, emit-nasm, emit-llvm
+    if (mode == "run-vm") {
+      std::cout << "[VM execution not yet implemented]\n";
+    } else if (mode == "run-ast") {
+      std::cout << "[AST interpreter not yet implemented]\n";
+    } else if (mode == "emit-nasm") {
+      std::cout << "[NASM emission not yet implemented]\n";
+    } else if (mode == "emit-llvm") {
+      std::cout << "[LLVM IR emission not yet implemented]\n";
+    } else {
+		std::cerr << "Unknown mode: " << mode << "\n";
+        return 1;
+    }
+  } catch (const std::exception& e) {
+      std::cerr << "Error: " << e.what() << "\n";
+      return 1;
+  }
+  return 0;
+  }
+
