@@ -279,5 +279,145 @@ int main() {
 
 
 
+// --- Capsule-aware AST mutation, Symbolic tracing, Optimization passes, Serialization/deserialization ---
 
+namespace triad {
+
+// Capsule-aware AST mutation: apply a mutator to all nodes, optionally skipping subtrees ("capsules")
+template <typename Mutator>
+void mutate_ast(ASTNode& node, Mutator&& mutator, bool capsule = false) {
+  if (capsule && (node.kind == ASTKind::Call || node.kind == ASTKind::Block)) {
+    // Treat Call/Block as a capsule: do not mutate children
+    mutator(node);
+    return;
+  }
+  mutator(node);
+  for (auto& child : node.children) {
+    if (child) mutate_ast(*child, mutator, capsule);
+  }
+}
+
+// Symbolic tracing: collect a trace of node kinds and values as a string
+inline void symbolic_trace(const ASTNode& node, std::ostream& os, int indent = 0) {
+  for (int i = 0; i < indent; ++i) os << "  ";
+  os << ASTNode::ast_kind_name(node.kind);
+  if (!node.value.empty()) os << " (" << node.value << ")";
+  os << "\n";
+  for (const auto& child : node.children) {
+    if (child) symbolic_trace(*child, os, indent + 1);
+  }
+}
+
+// Optimization pass: constant folding for simple binary ops (e.g., Number + Number)
+inline bool fold_constants(ASTNode& node) {
+  bool changed = false;
+  for (auto& child : node.children) {
+    if (child) changed |= fold_constants(*child);
+  }
+  if (node.kind == ASTKind::BinaryOp && node.children.size() == 2) {
+    const ASTNode* lhs = node.children[0].get();
+    const ASTNode* rhs = node.children[1].get();
+    if (lhs && rhs && lhs->kind == ASTKind::Number && rhs->kind == ASTKind::Number) {
+      double a = std::stod(lhs->value);
+      double b = std::stod(rhs->value);
+      double result = 0.0;
+      if (node.value == "+") result = a + b;
+      else if (node.value == "-") result = a - b;
+      else if (node.value == "*") result = a * b;
+      else if (node.value == "/") result = b != 0.0 ? a / b : 0.0;
+      else return changed;
+      node.kind = ASTKind::Number;
+      node.value = std::to_string(result);
+      node.children.clear();
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+// Serialization: write AST to a stream in a simple text format
+inline void serialize_ast(const ASTNode& node, std::ostream& os, int indent = 0) {
+  for (int i = 0; i < indent; ++i) os << "  ";
+  os << ASTNode::ast_kind_name(node.kind);
+  if (!node.value.empty()) os << " " << std::quoted(node.value);
+  os << " " << node.children.size() << "\n";
+  for (const auto& child : node.children) {
+    if (child) serialize_ast(*child, os, indent + 1);
+  }
+}
+
+// Deserialization: read AST from a stream (must match the format above)
+inline std::unique_ptr<ASTNode> deserialize_ast(std::istream& is, int indent = 0) {
+  std::string kind_str;
+  if (!(is >> std::ws)) return nullptr;
+  for (int i = 0; i < indent; ++i) is.ignore(2); // skip two spaces per indent
+  if (!(is >> kind_str)) return nullptr;
+  ASTKind kind = ASTKind::Unknown;
+  for (int k = 0; k <= static_cast<int>(ASTKind::Unknown); ++k) {
+    if (kind_str == ASTNode::ast_kind_name(static_cast<ASTKind>(k))) {
+      kind = static_cast<ASTKind>(k);
+      break;
+    }
+  }
+  std::string value;
+  if (is.peek() == ' ') is.get();
+  if (is.peek() == '"') is >> std::quoted(value);
+  size_t nchildren = 0;
+  is >> nchildren;
+  auto node = std::make_unique<ASTNode>(kind, value);
+  for (size_t i = 0; i < nchildren; ++i) {
+    node->add_child(deserialize_ast(is, indent + 1));
+  }
+  return node;
+}
+
+} // namespace triad
+
+#ifdef TRIAD_AST_ADVANCED_MAIN
+#include <sstream>
+#include <iomanip>
+
+int main() {
+  using namespace triad;
+
+  // Build a simple AST: say (1 + 2)
+  auto root = std::make_unique<ASTNode>(ASTKind::Program);
+  auto say = std::make_unique<ASTNode>(ASTKind::Say);
+  auto add = std::make_unique<ASTNode>(ASTKind::BinaryOp, "+");
+  add->add_child(std::make_unique<ASTNode>(ASTKind::Number, "1"));
+  add->add_child(std::make_unique<ASTNode>(ASTKind::Number, "2"));
+  say->add_child(std::move(add));
+  root->add_child(std::move(say));
+
+  // Capsule-aware mutation: uppercase all Number values, but skip inside Call/Block
+  mutate_ast(*root, [](ASTNode& n) {
+    if (n.kind == ASTKind::Number) {
+      for (auto& c : n.value) c = std::toupper(c);
+    }
+  }, true);
+
+  // Symbolic trace
+  std::cout << "Symbolic trace:\n";
+  symbolic_trace(*root, std::cout);
+
+  // Optimization: constant folding
+  if (fold_constants(*root)) {
+    std::cout << "After constant folding:\n";
+    root->dump();
+  }
+
+  // Serialize AST
+  std::ostringstream oss;
+  serialize_ast(*root, oss);
+  std::cout << "Serialized AST:\n" << oss.str();
+
+  // Deserialize AST
+  std::istringstream iss(oss.str());
+  auto loaded = deserialize_ast(iss);
+  std::cout << "Deserialized AST:\n";
+  if (loaded) loaded->dump();
+
+  return 0;
+}
+#endif
 
