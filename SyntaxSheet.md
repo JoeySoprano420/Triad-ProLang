@@ -1069,12 +1069,3 @@ EOL             := newline | ";" ;
 
 ---
 
-If you want, I’ll spin this into:
-
-* a **print-ready PDF syntax card**,
-* an **`.ebnf` file** you can drop into your repo, and
-* a **VSCode `tmLanguage.json`** starter with all new keywords and tokens.
-
-
----
-
