@@ -10,5 +10,6 @@ add_executable(triadc
   src/triad_ast.hpp
   src/triad_bytecode.hpp
   src/triad_vm.cpp
+  src_inlineconstchar.cpp
 )
 target_include_directories(triadc PRIVATE src)
