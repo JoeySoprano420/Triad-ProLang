@@ -1,5 +1,12 @@
 #pragma once
 
+struct Chunk {
+    // Define the members of Chunk as needed
+    // Example:
+    // int id;
+    // std::vector<char> data;
+};
+
 // Define the Chunk struct or class as needed
 struct Chunk {
     // Example fields - replace with actual members as required
