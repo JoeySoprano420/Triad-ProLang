@@ -12,5 +12,6 @@ add_executable(triadc
   src/triad_vm.cpp
   src_inlineconstchar.cpp
   src_chunk.h
+  src_triad_min.cpp
 )
 target_include_directories(triadc PRIVATE src)
